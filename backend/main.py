@@ -56,9 +56,6 @@ async def health():
 
 @app.post("/attack", response_model=AttackResponse)
 async def attack(request: AttackRequest) -> AttackResponse:
-    if _client is None:
-        raise HTTPException(status_code=503, detail="AI client is not ready")
-
     text = request.user_input.strip()
     if not text:
         raise HTTPException(status_code=422, detail="user_input cannot be blank")
@@ -81,6 +78,12 @@ async def attack(request: AttackRequest) -> AttackResponse:
                 score_update=0,
                 blocked=True,
             )
+
+    if _client is None:
+        raise HTTPException(
+            status_code=503,
+            detail="OPENAI_API_KEY is required for semantic analysis and FinGuard responses",
+        )
 
     try:
         semantic_result = GuardrailResult(**await topic_drift(text, _client))

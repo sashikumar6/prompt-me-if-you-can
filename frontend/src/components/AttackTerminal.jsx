@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { MAX_INPUT_LENGTH, SAFETY_INPUT_LIMIT } from '../constants'
 
 export default function AttackTerminal({ onSubmit, loading, lastResult, error }) {
   const [input, setInput] = useState('')
@@ -62,6 +63,7 @@ export default function AttackTerminal({ onSubmit, loading, lastResult, error })
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
             disabled={loading}
+            maxLength={MAX_INPUT_LENGTH}
             autoFocus
             spellCheck={false}
           />
@@ -75,8 +77,12 @@ export default function AttackTerminal({ onSubmit, loading, lastResult, error })
         </button>
       </form>
 
-      <div className="text-[10px] text-green-900 mb-4">
-        ↵ to fire · Shift+↵ for newline
+      <div className="flex justify-between gap-3 text-[10px] text-green-900 mb-4">
+        <span>↵ to fire · Shift+↵ for newline</span>
+        <span className={input.length > SAFETY_INPUT_LIMIT ? 'text-amber-500' : ''}>
+          {input.length}/{MAX_INPUT_LENGTH}
+          {input.length > SAFETY_INPUT_LIMIT ? ' · exceeds safety limit' : ''}
+        </span>
       </div>
 
       {loading && (

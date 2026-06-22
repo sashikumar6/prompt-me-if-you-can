@@ -1,6 +1,15 @@
 import { GUARDRAILS } from '../constants'
 
-export default function HeroSection({ onStart }) {
+const API_STATUS = {
+  checking: { label: 'CHECKING API', className: 'text-amber-700 border-amber-950' },
+  ready: { label: 'API READY', className: 'text-green-600 border-green-900' },
+  degraded: { label: 'API KEY REQUIRED', className: 'text-red-500 border-red-950' },
+  offline: { label: 'BACKEND OFFLINE', className: 'text-red-500 border-red-950' },
+}
+
+export default function HeroSection({ onStart, apiStatus }) {
+  const status = API_STATUS[apiStatus] ?? API_STATUS.checking
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-4 py-16 scanlines">
       {/* Top badge */}
@@ -26,6 +35,10 @@ export default function HeroSection({ onStart }) {
         <br />
         Ask it real finance questions—or test whether you can break through.
       </p>
+
+      <div className={`mb-6 border px-3 py-1 text-[10px] tracking-[0.2em] ${status.className}`}>
+        ● {status.label}
+      </div>
 
       {/* Guardrail badges */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-12 w-full max-w-lg">

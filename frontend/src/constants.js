@@ -39,3 +39,5 @@ export const GUARDRAILS = [
 
 export const GUARDRAIL_IDS = GUARDRAILS.map((guardrail) => guardrail.id)
 export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
+export const SAFETY_INPUT_LIMIT = 4000
+export const MAX_INPUT_LENGTH = 12000

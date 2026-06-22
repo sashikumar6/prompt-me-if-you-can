@@ -1,4 +1,4 @@
-import { useReducer, useCallback } from 'react'
+import { useReducer, useCallback, useEffect } from 'react'
 import { GUARDRAIL_IDS, API_BASE } from './constants'
 
 import HeroSection from './components/HeroSection'
@@ -21,10 +21,32 @@ const initialState = {
   loading: false,
   lastResult: null,
   error: '',
+  apiStatus: 'checking',
+}
+
+const API_STATUS_LABEL = {
+  checking: 'CHECKING',
+  ready: 'READY',
+  degraded: 'KEY REQUIRED',
+  offline: 'OFFLINE',
+}
+
+function errorMessage(detail, fallback) {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => item?.msg)
+      .filter(Boolean)
+      .join('; ') || fallback
+  }
+  return fallback
 }
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'API_STATUS':
+      return { ...state, apiStatus: action.status }
+
     case 'START':
       return { ...state, phase: 'playing' }
 
@@ -108,6 +130,31 @@ function reducer(state, action) {
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState)
 
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function checkApi() {
+      try {
+        const response = await fetch(`${API_BASE}/health`, {
+          signal: controller.signal,
+        })
+        if (!response.ok) throw new Error('Health check failed')
+        const health = await response.json()
+        dispatch({
+          type: 'API_STATUS',
+          status: health.ai_configured ? 'ready' : 'degraded',
+        })
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          dispatch({ type: 'API_STATUS', status: 'offline' })
+        }
+      }
+    }
+
+    checkApi()
+    return () => controller.abort()
+  }, [])
+
   const handleStart = useCallback(() => dispatch({ type: 'START' }), [])
 
   const handleAttack = useCallback(async (prompt) => {
@@ -120,7 +167,12 @@ export default function App() {
       })
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        throw new Error(body?.detail ?? `Request failed with HTTP ${res.status}`)
+        if (res.status === 503) {
+          dispatch({ type: 'API_STATUS', status: 'degraded' })
+        }
+        throw new Error(
+          errorMessage(body?.detail, `Request failed with HTTP ${res.status}`)
+        )
       }
       const result = await res.json()
       dispatch({ type: 'ATTACK_DONE', prompt, result })
@@ -131,7 +183,7 @@ export default function App() {
   }, [])
 
   if (state.phase === 'hero') {
-    return <HeroSection onStart={handleStart} />
+    return <HeroSection onStart={handleStart} apiStatus={state.apiStatus} />
   }
 
   return (
@@ -144,6 +196,15 @@ export default function App() {
           </span>
           <span className="text-green-900 text-xs hidden sm:inline">
             // FinGuard v2.1
+          </span>
+          <span className={`text-[10px] tracking-wider ${
+            state.apiStatus === 'ready'
+              ? 'text-green-600'
+              : state.apiStatus === 'checking'
+                ? 'text-amber-700'
+                : 'text-red-500'
+          }`}>
+            ● API {API_STATUS_LABEL[state.apiStatus] ?? 'UNKNOWN'}
           </span>
         </div>
         <div className="flex gap-5 text-xs">
