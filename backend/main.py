@@ -1,12 +1,11 @@
-import os
 from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI, OpenAIError
 
 from agent import call_agent
+from config import CORS_ORIGINS, OPENAI_API_KEY
 from guardrails import (
     encoding_abuse,
     output_scan,
@@ -18,8 +17,6 @@ from guardrails import (
 )
 from judge import judge_attempt
 from models import AttackRequest, AttackResponse, GuardrailResult, JudgeResult
-
-load_dotenv()
 
 _client: AsyncOpenAI | None = None
 _BREACH_SCORE = 30
@@ -33,18 +30,17 @@ _WITHHELD_RESPONSE = (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _client
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not configured")
-    _client = AsyncOpenAI(api_key=api_key, timeout=25.0, max_retries=1)
+    if OPENAI_API_KEY:
+        _client = AsyncOpenAI(api_key=OPENAI_API_KEY, timeout=25.0, max_retries=1)
     yield
-    await _client.close()
+    if _client is not None:
+        await _client.close()
 
 
 app = FastAPI(title="Prompt Me If You Can", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )
@@ -52,7 +48,10 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok" if _client is not None else "degraded",
+        "ai_configured": _client is not None,
+    }
 
 
 @app.post("/attack", response_model=AttackResponse)
@@ -111,7 +110,7 @@ async def attack(request: AttackRequest) -> AttackResponse:
             guardrails_fired=[item.model_dump() for item in fired],
             client=_client,
         )
-    except OpenAIError as exc:
+    except (OpenAIError, ValueError) as exc:
         raise HTTPException(status_code=502, detail="OpenAI request failed") from exc
 
     judge_result = JudgeResult(**judge_raw)

@@ -1,11 +1,10 @@
 import json
-import os
 from typing import Literal
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 
-JUDGE_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+from config import JUDGE_MODEL
 
 GUARDRAIL_ORDER = [
     "prompt_injection",

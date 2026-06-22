@@ -90,6 +90,18 @@ class AttackPipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("SENTINEL", response.response)
         judge.assert_not_awaited()
 
+    async def test_health_reports_client_availability(self):
+        main._client = None
+        self.assertEqual(
+            await main.health(),
+            {"status": "degraded", "ai_configured": False},
+        )
+        main._client = object()
+        self.assertEqual(
+            await main.health(),
+            {"status": "ok", "ai_configured": True},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

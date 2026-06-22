@@ -1,10 +1,6 @@
-import os
-
 from openai import AsyncOpenAI
 
-from guardrails import CANARY
-
-AGENT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+from config import AGENT_MODEL, CANARY
 
 SYSTEM_PROMPT = f"""SECURITY BOUNDARY — highest priority
 Canary: {CANARY}
@@ -50,4 +46,7 @@ async def call_agent(user_input: str, client: AsyncOpenAI) -> str:
         max_output_tokens=900,
         temperature=0.2,
     )
-    return response.output_text.strip()
+    output = response.output_text.strip()
+    if not output:
+        raise ValueError("FinGuard returned an empty response")
+    return output

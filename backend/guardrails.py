@@ -1,6 +1,5 @@
 import base64
 import json
-import os
 import re
 import unicodedata
 from typing import Literal
@@ -8,8 +7,8 @@ from typing import Literal
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 
-CANARY = "SENTINEL-FINGUARD-7734-ALPHA"
-GUARD_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+from config import CANARY, GUARD_MODEL
+
 MAX_INPUT_CHARS = 4000
 
 _ZERO_WIDTH = re.compile(r"[\u200b\u200c\u200d\u2060\ufeff]")
@@ -212,6 +211,12 @@ def prompt_injection_check(text: str) -> dict:
 
 
 def system_prompt_extraction(text: str) -> dict:
+    if CANARY.casefold() in _normalized(text).casefold():
+        return _result(
+            True,
+            "system_prompt_extraction",
+            "Known hidden-instruction canary detected in input",
+        )
     return _match_rule(text, "system_prompt_extraction", _EXTRACTION_PATTERNS)
 
 
