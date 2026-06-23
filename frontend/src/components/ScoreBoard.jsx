@@ -1,11 +1,26 @@
 import { useState } from 'react'
 
-export default function ScoreBoard({ totalScore, attempts, breachedCount }) {
+function getRank(discoveredCount, breachedCount) {
+  if (breachedCount > 0) return 'RED TEAM OPERATOR'
+  if (discoveredCount === 6) return 'GUARDRAIL ANALYST'
+  if (discoveredCount >= 4) return 'SAFETY RESEARCHER'
+  if (discoveredCount >= 2) return 'PROMPT DEFENDER'
+  return 'SECURITY ROOKIE'
+}
+
+export default function ScoreBoard({
+  totalScore,
+  knowledgeScore,
+  discoveredCount,
+  attempts,
+  breachedCount,
+}) {
   const [copied, setCopied] = useState(false)
 
   const shareUrl = typeof window === 'undefined' ? '' : window.location.origin
+  const rank = getRank(discoveredCount, breachedCount)
   const shareText =
-    `I breached ${breachedCount}/6 guardrails on Prompt Me If You Can — can you do better? ${shareUrl}`
+    `I reached ${rank}, mapped ${discoveredCount}/6 AI safety controls, and breached ${breachedCount}/6 on Prompt Me If You Can. Can you do better? ${shareUrl}`
 
   const handleCopy = async () => {
     try {
@@ -27,8 +42,27 @@ export default function ScoreBoard({ totalScore, attempts, breachedCount }) {
 
       {/* Stats */}
       <div className="space-y-2 mb-4">
+        <div className="border border-cyan-950 bg-[#091214] px-2.5 py-2 mb-3">
+          <div className="text-[9px] text-cyan-800 tracking-widest">AI SAFETY RANK</div>
+          <div className="text-xs text-cyan-300 font-bold mt-1">{rank}</div>
+        </div>
+
         <div className="flex justify-between items-center text-xs">
-          <span className="text-gray-600">GUARDRAILS BREACHED</span>
+          <span className="text-gray-600">CONTROLS MAPPED</span>
+          <span className="font-bold tabular-nums text-cyan-400">
+            {discoveredCount} / 6
+          </span>
+        </div>
+
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-gray-600">SAFETY XP</span>
+          <span className="font-bold tabular-nums text-cyan-400">
+            {knowledgeScore}
+          </span>
+        </div>
+
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-gray-600">CONTROLS BYPASSED</span>
           <span className={`font-bold tabular-nums ${breachedCount > 0 ? 'text-red-400 glow-red' : 'text-green-800'}`}>
             {breachedCount} / 6
           </span>

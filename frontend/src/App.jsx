@@ -14,6 +14,8 @@ const initialState = {
   phase: 'hero',
   attempts: 0,
   totalScore: 0,
+  knowledgeScore: 0,
+  discoveredCount: 0,
   breachedCount: 0,
   guardrailStatuses: initStatuses(),
   guardrailReasons: initReasons(),
@@ -58,12 +60,16 @@ function reducer(state, action) {
       const statuses = { ...state.guardrailStatuses }
       const reasons  = { ...state.guardrailReasons }
       let breachedDelta = 0
+      let discoveryDelta = 0
 
       // Input guardrails that fired → TRIGGERED (unless already breached)
       for (const g of result.guardrails_fired ?? []) {
         if (!g.triggered) continue
         if (GUARDRAIL_IDS.includes(g.rule)) {
-          if (statuses[g.rule] === 'locked') statuses[g.rule] = 'triggered'
+          if (statuses[g.rule] === 'locked') {
+            statuses[g.rule] = 'triggered'
+            discoveryDelta++
+          }
           if (g.reason) reasons[g.rule] = g.reason
         }
       }
@@ -72,6 +78,7 @@ function reducer(state, action) {
       if (result.judge_result?.broke_through && result.judge_result.guardrail_index >= 0) {
         const rule = GUARDRAIL_IDS[result.judge_result.guardrail_index]
         if (rule && statuses[rule] !== 'breached') {
+          if (statuses[rule] === 'locked') discoveryDelta++
           statuses[rule] = 'breached'
           reasons[rule]  = result.judge_result.reason ?? reasons[rule]
           breachedDelta++
@@ -83,6 +90,7 @@ function reducer(state, action) {
         g => g.rule === 'output_canary_leak'
       )
       if (canaryLeak && statuses['system_prompt_extraction'] !== 'breached') {
+        if (statuses['system_prompt_extraction'] === 'locked') discoveryDelta++
         statuses['system_prompt_extraction'] = 'breached'
         reasons['system_prompt_extraction'] = 'Canary phrase leaked — system prompt extracted'
         breachedDelta++
@@ -92,15 +100,21 @@ function reducer(state, action) {
         g => g.rule === 'output_pii_leak'
       )
       if (outputPiiLeak && statuses['pii_detection'] !== 'breached') {
+        if (statuses['pii_detection'] === 'locked') discoveryDelta++
         statuses['pii_detection'] = 'breached'
         reasons['pii_detection'] = 'Sensitive data appeared in model output and was withheld'
         breachedDelta++
       }
 
+      const enrichedResult = {
+        ...result,
+        discovery_xp: discoveryDelta * 100,
+      }
+
       const logEntry = {
         id: state.attempts + 1,
         prompt,
-        result,
+        result: enrichedResult,
         blocked: result.blocked,
         breached: !result.blocked && (result.score_update ?? 0) > 0,
         ts: Date.now(),
@@ -109,9 +123,11 @@ function reducer(state, action) {
       return {
         ...state,
         loading: false,
-        lastResult: result,
+        lastResult: enrichedResult,
         attempts: state.attempts + 1,
         totalScore: state.totalScore + (result.score_update ?? 0),
+        knowledgeScore: state.knowledgeScore + (discoveryDelta * 100),
+        discoveredCount: state.discoveredCount + discoveryDelta,
         breachedCount: state.breachedCount + breachedDelta,
         guardrailStatuses: statuses,
         guardrailReasons: reasons,
@@ -213,9 +229,15 @@ export default function App() {
             <span className="text-green-400 font-bold tabular-nums">{state.attempts}</span>
           </span>
           <span className="text-gray-600">
-            SCORE{' '}
+            SAFETY XP{' '}
+            <span className={`font-bold tabular-nums ${state.knowledgeScore > 0 ? 'text-cyan-400' : 'text-green-800'}`}>
+              {state.knowledgeScore}
+            </span>
+          </span>
+          <span className="text-gray-600 hidden md:inline">
+            BREACH PTS{' '}
             <span className={`font-bold tabular-nums ${state.totalScore > 0 ? 'text-amber-400' : 'text-green-800'}`}>
-              {state.totalScore} pts
+              {state.totalScore}
             </span>
           </span>
           <span className="text-gray-600">
@@ -248,6 +270,8 @@ export default function App() {
           />
           <ScoreBoard
             totalScore={state.totalScore}
+            knowledgeScore={state.knowledgeScore}
+            discoveredCount={state.discoveredCount}
             attempts={state.attempts}
             breachedCount={state.breachedCount}
           />

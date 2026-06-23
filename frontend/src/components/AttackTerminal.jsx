@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { MAX_INPUT_LENGTH, SAFETY_INPUT_LIMIT } from '../constants'
+import {
+  GUARDRAIL_BY_ID,
+  MAX_INPUT_LENGTH,
+  SAFETY_INPUT_LIMIT,
+} from '../constants'
 
 export default function AttackTerminal({ onSubmit, loading, lastResult, error }) {
   const [input, setInput] = useState('')
@@ -39,6 +43,8 @@ export default function AttackTerminal({ onSubmit, loading, lastResult, error })
     }
     return { label: 'SAFE RESPONSE — no breach detected', cls: 'text-green-700' }
   })()
+  const firedRule = lastResult?.guardrails_fired?.[0]?.rule
+  const lesson = firedRule ? GUARDRAIL_BY_ID[firedRule] : null
 
   return (
     <div className="p-4 border-b border-green-900">
@@ -110,6 +116,34 @@ export default function AttackTerminal({ onSubmit, loading, lastResult, error })
               {lastResult.guardrails_fired?.[0]?.reason && (
                 <div className="text-xs text-amber-700 mb-3 border-l-2 border-amber-900 pl-3 leading-relaxed">
                   {lastResult.guardrails_fired[0].reason}
+                </div>
+              )}
+
+              {lastResult.blocked && lesson && (
+                <div className="mb-3 border border-cyan-950 bg-[#091214] p-3 text-xs">
+                  <div className="text-[10px] text-cyan-700 tracking-[0.2em] uppercase mb-2">
+                    // interception debrief · {lastResult.discovery_xp > 0
+                      ? `+${lastResult.discovery_xp} safety XP`
+                      : 'control already mapped'}
+                  </div>
+                  <dl className="space-y-2 leading-relaxed">
+                    <div>
+                      <dt className="text-gray-600 inline">WHAT WAS DETECTED: </dt>
+                      <dd className="text-cyan-300 inline">{lesson.label}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-600 inline">WHY IT IS DANGEROUS: </dt>
+                      <dd className="text-gray-400 inline">{lesson.danger}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-600 inline">DEFENSE THAT STOPPED IT: </dt>
+                      <dd className="text-green-500 inline">{lesson.layer}</dd>
+                    </div>
+                    <div className="border-t border-cyan-950 pt-2">
+                      <dt className="text-gray-600 inline">LEARNING HINT: </dt>
+                      <dd className="text-amber-300 inline">{lesson.hint}</dd>
+                    </div>
+                  </dl>
                 </div>
               )}
 

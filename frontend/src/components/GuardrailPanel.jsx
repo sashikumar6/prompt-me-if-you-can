@@ -3,21 +3,21 @@ import { GUARDRAILS } from '../constants'
 const STATUS = {
   locked: {
     icon: '🔒',
-    label: 'LOCKED',
+    label: 'ACTIVE',
     rowCls: 'border-green-950 text-gray-600',
     labelCls: 'text-green-900',
     animation: '',
   },
   triggered: {
     icon: '⚡',
-    label: 'TRIGGERED',
+    label: 'INTERCEPTED',
     rowCls: 'border-amber-900/60 text-amber-400',
     labelCls: 'text-amber-400',
     animation: 'animate-flash',
   },
   breached: {
     icon: '💀',
-    label: 'BREACHED',
+    label: 'BYPASSED',
     rowCls: 'border-red-900/60 text-red-400',
     labelCls: 'text-red-400',
     animation: 'animate-flash-red',

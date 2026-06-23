@@ -50,7 +50,7 @@ export default function HeroSection({ onStart, apiStatus }) {
             <span className="text-base leading-none">🔒</span>
             <div>
               <div className="text-gray-500">{g.label}</div>
-              <div className="text-green-900 text-[10px] mt-0.5">LOCKED</div>
+              <div className="text-green-900 text-[10px] mt-0.5">ACTIVE</div>
             </div>
           </div>
         ))}
@@ -66,8 +66,8 @@ export default function HeroSection({ onStart, apiStatus }) {
 
       {/* Fine print */}
       <div className="text-center text-xs text-gray-700 space-y-1 max-w-sm">
-        <div>Every released response is independently evaluated.</div>
-        <div>Six controls across five defense layers are active.</div>
+        <div>Every blocked attempt includes an AI-safety debrief.</div>
+        <div>Map all six controls, earn Safety XP, then hunt for a real bypass.</div>
       </div>
 
       {/* Bottom decoration */}
