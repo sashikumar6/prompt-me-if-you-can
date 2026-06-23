@@ -1,8 +1,9 @@
 import { useReducer, useCallback, useEffect } from 'react'
-import { GUARDRAIL_IDS, API_BASE } from './constants'
+import { GUARDRAIL_IDS, API_BASE, LEVELS } from './constants'
 
 import HeroSection from './components/HeroSection'
 import AttackTerminal from './components/AttackTerminal'
+import CampaignPanel from './components/CampaignPanel'
 import GuardrailPanel from './components/GuardrailPanel'
 import ScoreBoard from './components/ScoreBoard'
 import AttackLog from './components/AttackLog'
@@ -24,6 +25,9 @@ const initialState = {
   lastResult: null,
   error: '',
   apiStatus: 'checking',
+  currentLevelIndex: 0,
+  levelAttempts: {},
+  completedLevels: [],
 }
 
 const API_STATUS_LABEL = {
@@ -53,7 +57,16 @@ function reducer(state, action) {
       return { ...state, phase: 'playing' }
 
     case 'ATTACK_START':
-      return { ...state, loading: true, lastResult: null, error: '' }
+      return {
+        ...state,
+        loading: true,
+        lastResult: null,
+        error: '',
+        levelAttempts: {
+          ...state.levelAttempts,
+          [action.challengeId]: action.attemptNumber,
+        },
+      }
 
     case 'ATTACK_DONE': {
       const { prompt, result } = action
@@ -110,6 +123,11 @@ function reducer(state, action) {
         ...result,
         discovery_xp: discoveryDelta * 100,
       }
+      const completedLevels = result.challenge_completed
+        && result.challenge_id
+        && !state.completedLevels.includes(result.challenge_id)
+          ? [...state.completedLevels, result.challenge_id]
+          : state.completedLevels
 
       const logEntry = {
         id: state.attempts + 1,
@@ -131,12 +149,24 @@ function reducer(state, action) {
         breachedCount: state.breachedCount + breachedDelta,
         guardrailStatuses: statuses,
         guardrailReasons: reasons,
+        completedLevels,
         log: [logEntry, ...state.log],
       }
     }
 
     case 'ATTACK_ERROR':
       return { ...state, loading: false, error: action.message }
+
+    case 'NEXT_LEVEL':
+      return {
+        ...state,
+        currentLevelIndex: Math.min(
+          state.currentLevelIndex + 1,
+          LEVELS.length - 1,
+        ),
+        lastResult: null,
+        error: '',
+      }
 
     default:
       return state
@@ -172,14 +202,28 @@ export default function App() {
   }, [])
 
   const handleStart = useCallback(() => dispatch({ type: 'START' }), [])
+  const handleNextLevel = useCallback(
+    () => dispatch({ type: 'NEXT_LEVEL' }),
+    [],
+  )
 
   const handleAttack = useCallback(async (prompt) => {
-    dispatch({ type: 'ATTACK_START' })
+    const level = LEVELS[state.currentLevelIndex]
+    const attemptNumber = (state.levelAttempts[level.id] ?? 0) + 1
+    dispatch({
+      type: 'ATTACK_START',
+      challengeId: level.id,
+      attemptNumber,
+    })
     try {
       const res = await fetch(`${API_BASE}/attack`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_input: prompt }),
+        body: JSON.stringify({
+          user_input: prompt,
+          challenge_id: level.id,
+          attempt_number: attemptNumber,
+        }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => null)
@@ -196,7 +240,7 @@ export default function App() {
       console.error('Attack failed:', err)
       dispatch({ type: 'ATTACK_ERROR', message: err.message })
     }
-  }, [])
+  }, [state.currentLevelIndex, state.levelAttempts])
 
   if (state.phase === 'hero') {
     return <HeroSection onStart={handleStart} apiStatus={state.apiStatus} />
@@ -241,7 +285,7 @@ export default function App() {
             </span>
           </span>
           <span className="text-gray-600">
-            BREACHED{' '}
+            BYPASSED{' '}
             <span className={`font-bold tabular-nums ${state.breachedCount > 0 ? 'text-red-400' : 'text-green-800'}`}>
               {state.breachedCount}/6
             </span>
@@ -258,12 +302,22 @@ export default function App() {
             loading={state.loading}
             lastResult={state.lastResult}
             error={state.error}
+            currentLevel={LEVELS[state.currentLevelIndex]}
+            levelCompleted={state.completedLevels.includes(
+              LEVELS[state.currentLevelIndex].id
+            )}
           />
           <AttackLog log={state.log} />
         </div>
 
         {/* Right: Guardrail panel + Scoreboard */}
         <div className="lg:w-72 xl:w-80 flex-shrink-0 border-t lg:border-t-0 border-green-900">
+          <CampaignPanel
+            currentLevelIndex={state.currentLevelIndex}
+            levelAttempts={state.levelAttempts}
+            completedLevels={state.completedLevels}
+            onNextLevel={handleNextLevel}
+          />
           <GuardrailPanel
             statuses={state.guardrailStatuses}
             reasons={state.guardrailReasons}

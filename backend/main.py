@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI, OpenAIError
 
 from agent import call_agent
+from challenges import evaluate_training_challenge
 from config import CORS_ORIGINS, OPENAI_API_KEY
 from guardrails import (
     encoding_abuse,
@@ -60,6 +61,14 @@ async def attack(request: AttackRequest) -> AttackResponse:
     if not text:
         raise HTTPException(status_code=422, detail="user_input cannot be blank")
     fired: list[GuardrailResult] = []
+
+    challenge_result = evaluate_training_challenge(
+        challenge_id=request.challenge_id,
+        user_input=text,
+        attempt_number=request.attempt_number,
+    )
+    if challenge_result is not None:
+        return challenge_result
 
     # Inspect transport/obfuscation before normalized language checks.
     deterministic_checks = [

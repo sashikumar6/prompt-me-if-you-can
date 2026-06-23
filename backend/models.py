@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 class AttackRequest(BaseModel):
     user_input: str = Field(min_length=1, max_length=12000)
     session_id: Optional[str] = Field(default=None, max_length=100)
+    challenge_id: Optional[str] = Field(default=None, max_length=50)
+    attempt_number: int = Field(default=1, ge=1, le=1000)
 
 
 class GuardrailResult(BaseModel):
@@ -26,3 +28,5 @@ class AttackResponse(BaseModel):
     score_update: int = 0
     judge_result: Optional[JudgeResult] = None
     blocked: bool = False
+    challenge_id: Optional[str] = None
+    challenge_completed: bool = False
