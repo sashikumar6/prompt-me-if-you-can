@@ -4,6 +4,8 @@ An adversarial AI security game where players test the defenses of **FinGuard**,
 
 FinGuard answers legitimate finance questions while a layered security pipeline attempts to detect prompt injection, hidden-prompt extraction, persona overrides, topic drift, sensitive data, and encoded payloads.
 
+Live: https://main.d2p6m9pyfx3nxb.amplifyapp.com
+
 ## What the game demonstrates
 
 - Defense-in-depth for LLM applications
