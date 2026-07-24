@@ -1,14 +1,13 @@
 services:
   - type: web
-    name: prompt-guard-backend
-    runtime: python
-    rootDir: prompt-me-if-you-can/backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    name: prompt-guard
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
     envVars:
       - key: OPENAI_API_KEY
-        sync: false
-      - key: CORS_ORIGINS
         sync: false
       - key: OPENAI_MODEL
         value: gpt-4o-mini

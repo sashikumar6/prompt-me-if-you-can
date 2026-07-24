@@ -1,14 +1,16 @@
 from contextlib import asynccontextmanager
+import os
 import re
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from mangum import Mangum
 from openai import AsyncOpenAI, OpenAIError
 
 from agent import call_agent
 from challenges import evaluate_training_challenge
-from config import CORS_ORIGINS, OPENAI_API_KEY
+from config import OPENAI_API_KEY
 from guardrails import (
     encoding_abuse,
     output_scan,
@@ -250,5 +252,9 @@ async def attack(request: AttackRequest) -> AttackResponse:
         pipeline=pipeline,
     )
 
+
+_STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(_STATIC_DIR):
+    app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="frontend")
 
 handler = Mangum(app, api_gateway_base_path="/default")
