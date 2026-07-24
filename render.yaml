@@ -14,13 +14,3 @@ services:
         value: gpt-4o-mini
       - key: FINGUARD_CANARY
         generateValue: true
-
-  - type: web
-    name: prompt-guard-frontend
-    runtime: node
-    rootDir: prompt-me-if-you-can/frontend
-    buildCommand: npm ci && npm run build
-    startCommand: npx serve -s dist -l $PORT
-    envVars:
-      - key: VITE_API_BASE
-        sync: false
