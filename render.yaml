@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: prompt-guard-backend
+    runtime: python
+    rootDir: prompt-me-if-you-can/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: FINGUARD_CANARY
+        generateValue: true
+
+  - type: static
+    name: prompt-guard-frontend
+    rootDir: prompt-me-if-you-can/frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE
+        sync: false
