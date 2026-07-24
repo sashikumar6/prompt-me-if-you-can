@@ -15,11 +15,12 @@ services:
       - key: FINGUARD_CANARY
         generateValue: true
 
-  - type: static
+  - type: web
     name: prompt-guard-frontend
+    runtime: node
     rootDir: prompt-me-if-you-can/frontend
     buildCommand: npm ci && npm run build
-    staticPublishPath: dist
+    startCommand: npx serve -s dist -l $PORT
     envVars:
       - key: VITE_API_BASE
         sync: false
